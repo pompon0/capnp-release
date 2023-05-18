@@ -15,7 +15,7 @@ on:
         description: 'branch/tag/commit'
         required: true
         default: 'main'
-      working-directory:
+      working_directory:
         description: 'bazel workspace root directory'
         required: true
         default: './c++'
@@ -23,7 +23,7 @@ on:
         description: 'bazel target'
         required: true
         default: '//src/capnp:capnp_tool'
-      bin-target:
+      bin_target:
         description: 'bazel bin target'
         required: true
         default: '/src/capnp/capnp_tool'
@@ -38,11 +38,12 @@ jobs:
         with:
           repository: ${{ github.event.inputs.repository }}
           ref: ${{ github.event.inputs.ref }}
-      - run: bazel build -c opt ${{ github.events.inputs.target }} --features=fully_static_link
-        working-directory: ${{ github.event.inputs.working-directory }}
+      - name: bazel_build
+        working-directory: ${{ github.event.inputs.working_directory }}
+        run: bazel build -c opt ${{ github.events.inputs.target }} --features=fully_static_link
       # TODO: this command is what is blocking windows support
       - id: bazel_output
-        run: echo "::set-output name=PATH::$(bazel info -c opt bazel-bin)/${{ github.events.inputs.bin-target }}" 
+        run: echo "::set-output name=PATH::$(bazel info -c opt bazel-bin)/${{ github.events.inputs.bin_target }}" 
       - uses: actions/upload-artifact@v3
         with:
           name: capnproto_tool
