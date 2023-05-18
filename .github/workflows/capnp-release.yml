@@ -1,0 +1,56 @@
+# use the following action for debugging:
+# https://github.com/mxschmitt/action-tmate
+name: capnproto
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag'
+        required: true
+      repository:
+        desciption: 'protobuf repository'
+        required: true
+        default: capnproto/capnproto.git
+      ref:
+        description: 'branch/tag/commit'
+        required: true
+        default: 'main'
+      working-directory:
+        description: 'bazel workspace root directory'
+        required: true
+        default: './c++'
+      target:
+        description: 'bazel target'
+        required: true
+        default: '//src/capnp:capnp_tool'
+      bin-target:
+        description: 'bazel bin target'
+        required: true
+        default: '/src/capnp/capnp_tool'
+jobs:
+  compile:
+    strategy:
+      matrix:
+        runs_on: ["ubuntu-latest","macos-latest"] # ,"windows-latest"]
+    runs-on: ${{ matrix.runs_on }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.inputs.repository }}
+          ref: ${{ github.event.inputs.ref }}
+      - run: bazel build -c opt ${{ github.events.inputs.target }} --features=fully_static_link
+        working-directory: ${{ github.event.inputs.working-directory }}
+      # TODO: this command is what is blocking windows support
+      - id: bazel_output
+        run: echo "::set-output name=PATH::$(bazel info -c opt bazel-bin)/${{ github.events.inputs.bin-target }}" 
+      - uses: actions/upload-artifact@v3
+        with:
+          name: capnproto_tool
+          path: ${{ steps.bazel_output.outputs.PATH }}
+      - uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifactErrorsFailBuild: true
+          draft: true
+          tag: ${{ github.event.inputs.release_tag }}_${{ runner.arch }}_${{ runner.os }}
+          artifacts: ${{ steps.bazel_output.outputs.PATH }}
